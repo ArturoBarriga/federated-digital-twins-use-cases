@@ -1,0 +1,456 @@
+version: "3.8"
+
+x-sim-common: &sim-common
+  build: ./tree_dt/simulator
+  networks:
+    - orchard-net
+  environment:
+    SAMPLE_RATE_MINUTES: 1
+    SIMULATOR_PORT: 5012
+
+x-dt-common: &dt-common
+  build: ./tree_dt/dt_logic
+  volumes:
+    - ./config.yaml:/app/config.yaml:ro
+  networks:
+    - orchard-net
+  environment:
+    BASYX_SUFFIX: aas
+    DT_SUFFIX: logic
+    DT_PORT: 8000
+
+
+services:
+
+  # Per tree:
+  #   treeX_aas       — Eclipse BaSyx Java AAS server
+  #   treeX_init      — One-shot script that creates the AAS shell + submodel
+  #   treeX_simulator — Generates synthetic sensor data, pushes to treeX_aas
+  #   treeX_logic     — P2P heartbeat discovery + reads from BaSyx + anomaly detection
+
+  #######################################################
+  # Tree 1
+  #######################################################
+  tree1_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8081:4001"]
+    networks:
+      - orchard-net
+    container_name: tree1_aas
+
+  tree1_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree1_aas:4001
+      DT_ID: dt_01
+    networks:
+      - orchard-net
+    container_name: tree1_init
+    depends_on:
+      - tree1_aas
+
+  tree1_simulator:
+    <<: *sim-common
+    ports: ["9001:5012"]
+    environment:
+      AAS_URL: http://tree1_aas:4001
+      DT_ID: dt_01
+    container_name: tree1_simulator
+    depends_on:
+      - tree1_aas
+      - tree1_init
+
+  tree1_logic:
+    <<: *dt-common
+    ports: ["8001:8000"]
+    environment:
+      AAS_URL: http://tree1_aas:4001
+      DT_ID: dt_01
+    container_name: tree1_logic
+    depends_on:
+      - tree1_aas
+
+  #######################################################
+  # Tree 2
+  #######################################################
+  tree2_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8082:4001"]
+    networks:
+      - orchard-net
+    container_name: tree2_aas
+
+  tree2_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree2_aas:4001
+      DT_ID: dt_02
+    networks:
+      - orchard-net
+    container_name: tree2_init
+    depends_on:
+      - tree2_aas
+
+  tree2_simulator:
+    <<: *sim-common
+    ports: ["9002:5012"]
+    environment:
+      AAS_URL: http://tree2_aas:4001
+      DT_ID: dt_02
+    container_name: tree2_simulator
+    depends_on:
+      - tree2_aas
+      - tree2_init
+
+  tree2_logic:
+    <<: *dt-common
+    ports: ["8002:8000"]
+    environment:
+      AAS_URL: http://tree2_aas:4001
+      DT_ID: dt_02
+    container_name: tree2_logic
+    depends_on:
+      - tree2_aas
+
+  #######################################################
+  # Tree 3
+  #######################################################
+  tree3_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8083:4001"]
+    networks:
+      - orchard-net
+    container_name: tree3_aas
+
+  tree3_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree3_aas:4001
+      DT_ID: dt_03
+    networks:
+      - orchard-net
+    container_name: tree3_init
+    depends_on:
+      - tree3_aas
+
+  tree3_simulator:
+    <<: *sim-common
+    ports: ["9003:5012"]
+    environment:
+      AAS_URL: http://tree3_aas:4001
+      DT_ID: dt_03
+    container_name: tree3_simulator
+    depends_on:
+      - tree3_aas
+      - tree3_init
+
+  tree3_logic:
+    <<: *dt-common
+    ports: ["8003:8000"]
+    environment:
+      AAS_URL: http://tree3_aas:4001
+      DT_ID: dt_03
+    container_name: tree3_logic
+    depends_on:
+      - tree3_aas
+
+  #######################################################
+  # Tree 4
+  #######################################################
+  tree4_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8084:4001"]
+    networks:
+      - orchard-net
+    container_name: tree4_aas
+
+  tree4_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree4_aas:4001
+      DT_ID: dt_04
+    networks:
+      - orchard-net
+    container_name: tree4_init
+    depends_on:
+      - tree4_aas
+
+  tree4_simulator:
+    <<: *sim-common
+    ports: ["9004:5012"]
+    environment:
+      AAS_URL: http://tree4_aas:4001
+      DT_ID: dt_04
+    container_name: tree4_simulator
+    depends_on:
+      - tree4_aas
+      - tree4_init
+
+  tree4_logic:
+    <<: *dt-common
+    ports: ["8004:8000"]
+    environment:
+      AAS_URL: http://tree4_aas:4001
+      DT_ID: dt_04
+    container_name: tree4_logic
+    depends_on:
+      - tree4_aas
+
+  #######################################################
+  # Tree 5
+  #######################################################
+  tree5_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8085:4001"]
+    networks:
+      - orchard-net
+    container_name: tree5_aas
+
+  tree5_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree5_aas:4001
+      DT_ID: dt_05
+    networks:
+      - orchard-net
+    container_name: tree5_init
+    depends_on:
+      - tree5_aas
+
+  tree5_simulator:
+    <<: *sim-common
+    ports: ["9005:5012"]
+    environment:
+      AAS_URL: http://tree5_aas:4001
+      DT_ID: dt_05
+    container_name: tree5_simulator
+    depends_on:
+      - tree5_aas
+      - tree5_init
+
+  tree5_logic:
+    <<: *dt-common
+    ports: ["8005:8000"]
+    environment:
+      AAS_URL: http://tree5_aas:4001
+      DT_ID: dt_05
+    container_name: tree5_logic
+    depends_on:
+      - tree5_aas
+
+  #######################################################
+  # Tree 6
+  #######################################################
+  tree6_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8086:4001"]
+    networks:
+      - orchard-net
+    container_name: tree6_aas
+
+  tree6_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree6_aas:4001
+      DT_ID: dt_06
+    networks:
+      - orchard-net
+    container_name: tree6_init
+    depends_on:
+      - tree6_aas
+
+  tree6_simulator:
+    <<: *sim-common
+    ports: ["9006:5012"]
+    environment:
+      AAS_URL: http://tree6_aas:4001
+      DT_ID: dt_06
+    container_name: tree6_simulator
+    depends_on:
+      - tree6_aas
+      - tree6_init
+
+  tree6_logic:
+    <<: *dt-common
+    ports: ["8006:8000"]
+    environment:
+      AAS_URL: http://tree6_aas:4001
+      DT_ID: dt_06
+    container_name: tree6_logic
+    depends_on:
+      - tree6_aas
+
+  #######################################################
+  # Tree 7
+  #######################################################
+  tree7_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8087:4001"]
+    networks:
+      - orchard-net
+    container_name: tree7_aas
+
+  tree7_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree7_aas:4001
+      DT_ID: dt_07
+    networks:
+      - orchard-net
+    container_name: tree7_init
+    depends_on:
+      - tree7_aas
+
+  tree7_simulator:
+    <<: *sim-common
+    ports: ["9007:5012"]
+    environment:
+      AAS_URL: http://tree7_aas:4001
+      DT_ID: dt_07
+    container_name: tree7_simulator
+    depends_on:
+      - tree7_aas
+      - tree7_init
+
+  tree7_logic:
+    <<: *dt-common
+    ports: ["8007:8000"]
+    environment:
+      AAS_URL: http://tree7_aas:4001
+      DT_ID: dt_07
+    container_name: tree7_logic
+    depends_on:
+      - tree7_aas
+
+  #######################################################
+  # Tree 8
+  #######################################################
+  tree8_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8088:4001"]
+    networks:
+      - orchard-net
+    container_name: tree8_aas
+
+  tree8_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree8_aas:4001
+      DT_ID: dt_08
+    networks:
+      - orchard-net
+    container_name: tree8_init
+    depends_on:
+      - tree8_aas
+
+  tree8_simulator:
+    <<: *sim-common
+    ports: ["9008:5012"]
+    environment:
+      AAS_URL: http://tree8_aas:4001
+      DT_ID: dt_08
+    container_name: tree8_simulator
+    depends_on:
+      - tree8_aas
+      - tree8_init
+
+  tree8_logic:
+    <<: *dt-common
+    ports: ["8008:8000"]
+    environment:
+      AAS_URL: http://tree8_aas:4001
+      DT_ID: dt_08
+    container_name: tree8_logic
+    depends_on:
+      - tree8_aas
+
+  #######################################################
+  # Tree 9
+  #######################################################
+  tree9_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8089:4001"]
+    networks:
+      - orchard-net
+    container_name: tree9_aas
+
+  tree9_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree9_aas:4001
+      DT_ID: dt_09
+    networks:
+      - orchard-net
+    container_name: tree9_init
+    depends_on:
+      - tree9_aas
+
+  tree9_simulator:
+    <<: *sim-common
+    ports: ["9009:5012"]
+    environment:
+      AAS_URL: http://tree9_aas:4001
+      DT_ID: dt_09
+    container_name: tree9_simulator
+    depends_on:
+      - tree9_aas
+      - tree9_init
+
+  tree9_logic:
+    <<: *dt-common
+    ports: ["8009:8000"]
+    environment:
+      AAS_URL: http://tree9_aas:4001
+      DT_ID: dt_09
+    container_name: tree9_logic
+    depends_on:
+      - tree9_aas
+
+  #######################################################
+  # Tree 10
+  #######################################################
+  tree10_aas:
+    image: eclipsebasyx/aas-server:1.4.0
+    ports: ["8090:4001"]
+    networks:
+      - orchard-net
+    container_name: tree10_aas
+
+  tree10_init:
+    build: ./tree_dt/init
+    environment:
+      AAS_URL: http://tree10_aas:4001
+      DT_ID: dt_10
+    networks:
+      - orchard-net
+    container_name: tree10_init
+    depends_on:
+      - tree10_aas
+
+  tree10_simulator:
+    <<: *sim-common
+    ports: ["9010:5012"]
+    environment:
+      AAS_URL: http://tree10_aas:4001
+      DT_ID: dt_10
+    container_name: tree10_simulator
+    depends_on:
+      - tree10_aas
+      - tree10_init
+
+  tree10_logic:
+    <<: *dt-common
+    ports: ["8010:8000"]
+    environment:
+      AAS_URL: http://tree10_aas:4001
+      DT_ID: dt_10
+    container_name: tree10_logic
+    depends_on:
+      - tree10_aas
+
+networks:
+  orchard-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

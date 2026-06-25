@@ -1,0 +1,7 @@
+# Data Preprocessor service
+# Applies min-max normalisation to raw sensor values for the ML model.
+FROM python:3.11-slim
+WORKDIR /app
+COPY preprocessor_service.py .
+RUN pip install Flask==2.3.3 gunicorn==20.1.0
+CMD ["gunicorn", "-w 2", "-b", "0.0.0.0:8000", "preprocessor_service:app"]

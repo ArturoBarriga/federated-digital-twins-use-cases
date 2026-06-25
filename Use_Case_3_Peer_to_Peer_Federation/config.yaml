@@ -1,0 +1,10 @@
+# Configuration shared by all dt_logic containers (mounted at /app/config.yaml).
+dt_core:
+  deviation_threshold: 3.0
+  measurement_interval_seconds: 60
+  discovery_interval_seconds: 30
+  peer_timeout_seconds: 180
+
+scenario:
+  anomaly_turgor_value: 0.05
+  leave_dt_id: dt_05

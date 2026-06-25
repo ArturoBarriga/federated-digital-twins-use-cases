@@ -1,0 +1,206 @@
+
+version: '3.8'
+
+services:
+
+  # Five digital twins (Trunk, Leaf, Tree, Sprinkler, Farm) plus two
+  # microservices (data preprocessor, ML model) orchestrated on a shared
+  # bridge network
+
+  ###################################################################
+  # Trunk DT
+  ###################################################################
+
+  trunk-aas:
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-08
+    container_name: trunk-aas
+    ports: ["5081:8081"]
+    networks: [orchard-net]
+
+  trunk-init:
+    build:
+      context: ./digital_twins/trunk_dt/init
+      dockerfile: Dockerfile
+    container_name: trunk-init
+    environment:
+      - AAS_URL=http://trunk-aas:8081
+    depends_on: [trunk-aas]
+    networks: [orchard-net]
+    restart: "no"
+
+  trunk-simulator:
+    build:
+      context: ./digital_twins/trunk_dt/simulator
+      dockerfile: Dockerfile
+    container_name: trunk-simulator
+    ports: ["5011:5011"]
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AAS_URL=http://trunk-aas:8081
+      - SAMPLE_RATE_MINUTES=1
+      - SIMULATOR_PORT=5011
+    depends_on: [trunk-init]
+    networks: [orchard-net]
+
+  ###################################################################
+  # Leaf DT
+  ###################################################################
+
+  leaf-aas:
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-08
+    container_name: leaf-aas
+    ports: ["5082:8081"]
+    networks: [orchard-net]
+
+  leaf-init:
+    build:
+      context: ./digital_twins/leaf_dt/init
+      dockerfile: Dockerfile
+    container_name: leaf-init
+    environment:
+      - AAS_URL=http://leaf-aas:8081
+    depends_on: [leaf-aas]
+    networks: [orchard-net]
+    restart: "no"
+
+  leaf-simulator:
+    build:
+      context: ./digital_twins/leaf_dt/simulator
+      dockerfile: Dockerfile
+    container_name: leaf-simulator
+    ports: ["5012:5012"]
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AAS_URL=http://leaf-aas:8081
+      - SAMPLE_RATE_MINUTES=1
+      - SIMULATOR_PORT=5012
+    depends_on: [leaf-init]
+    networks: [orchard-net]
+
+  ###################################################################
+  # Tree DT
+  ###################################################################
+
+  tree-aas:
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-08
+    container_name: tree-aas
+    ports: ["5083:8081"]
+    networks: [orchard-net]
+
+  tree-init:
+    build:
+      context: ./digital_twins/tree_dt/init
+      dockerfile: Dockerfile
+    container_name: tree-init
+    environment:
+      - AAS_URL=http://tree-aas:8081
+      - DELEGATE_URL=http://tree-logic:5003/invoke/assess
+    depends_on: [tree-aas]
+    networks: [orchard-net]
+    restart: "no"
+
+  tree-logic:
+    build:
+      context: ./digital_twins
+      dockerfile: tree_dt/service/Dockerfile
+    container_name: tree-logic
+    ports: ["5003:5003"]
+    environment:
+      - SERVICE_PORT=5003
+      - AAS_URL=http://tree-aas:8081
+      - TRUNK_AAS_URL=http://trunk-aas:8081
+      - LEAF_AAS_URL=http://leaf-aas:8081
+      - PREPROCESSOR_URL=http://tree-data-preprocessor:8000
+      - ML_MODEL_URL=http://tree-ml-model:8000
+    depends_on: [tree-init, trunk-init, leaf-init, tree-data-preprocessor, tree-ml-model]
+    networks: [orchard-net]
+
+  tree-data-preprocessor:
+    build:
+      context: ./digital_twins/tree_dt/data_preprocessor_service
+      dockerfile: dockerfile
+    container_name: tree-data-preprocessor
+    ports: ["8002:8000"]
+    networks: [orchard-net]
+
+  tree-ml-model:
+    build:
+      context: ./digital_twins/tree_dt/water_stress_identification_mlmodel
+      dockerfile: dockerfile
+    container_name: tree-ml-model
+    ports: ["8003:8000"]
+    networks: [orchard-net]
+
+  ###################################################################
+  # Sprinkler DT 
+  ###################################################################
+
+  sprinkler-aas:
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-08
+    container_name: sprinkler-aas
+    ports: ["5084:8081"]
+    networks: [orchard-net]
+
+  sprinkler-init:
+    build:
+      context: ./digital_twins/sprinkler_dt/init
+      dockerfile: Dockerfile
+    container_name: sprinkler-init
+    environment:
+      - AAS_URL=http://sprinkler-aas:8081
+      - DELEGATE_BASE=http://sprinkler-service:5004/invoke
+    depends_on: [sprinkler-aas]
+    networks: [orchard-net]
+    restart: "no"
+
+  sprinkler-service:
+    build:
+      context: ./digital_twins
+      dockerfile: sprinkler_dt/service/Dockerfile
+    container_name: sprinkler-service
+    ports: ["5004:5004"]
+    environment:
+      - SERVICE_PORT=5004
+      - AAS_URL=http://sprinkler-aas:8081
+    depends_on: [sprinkler-init]
+    networks: [orchard-net]
+
+  ###################################################################
+  # Farm DT
+  ###################################################################
+
+  farm-aas:
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-08
+    container_name: farm-aas
+    ports: ["5085:8081"]
+    networks: [orchard-net]
+
+  farm-init:
+    build:
+      context: ./digital_twins/farm_dt/init
+      dockerfile: Dockerfile
+    container_name: farm-init
+    environment:
+      - AAS_URL=http://farm-aas:8081
+      - DELEGATE_URL=http://farm-logic:5005/invoke/trigger
+    depends_on: [farm-aas]
+    networks: [orchard-net]
+    restart: "no"
+
+  farm-logic:
+    build:
+      context: ./digital_twins
+      dockerfile: farm_dt/service/Dockerfile
+    container_name: farm-logic
+    ports: ["5005:5005"]
+    environment:
+      - SERVICE_PORT=5005
+      - STRESS_AAS_URL=http://tree-aas:8081
+      - IRRIGATION_AAS_URL=http://sprinkler-aas:8081
+      - SCHEDULED_HOUR=8
+    depends_on: [tree-logic, sprinkler-service, farm-init]
+    networks: [orchard-net]
+
+networks:
+  orchard-net:
+    driver: bridge

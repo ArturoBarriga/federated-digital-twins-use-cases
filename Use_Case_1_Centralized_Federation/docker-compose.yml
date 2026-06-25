@@ -1,0 +1,309 @@
+
+version: "3.8"
+
+networks:
+  edt-net:
+    driver: bridge
+
+services:
+
+  # Irrigation federation with three digital twins (Ditto, AAS, NGSI-LD)
+  # Each farm groups its twin platform + init + simulator + adapter together
+
+  ########################################################
+  # CENTRAL MANAGER
+  ########################################################
+  central-manager:
+    build:
+      context: .
+      dockerfile: central_manager/Dockerfile
+    image: central-manager
+    container_name: central-manager
+    ports: ["8000:8000"]
+    volumes:
+      - ./central_manager:/app/central_manager
+      - ./shared:/app/shared
+    environment:
+      - ALLOCATION_INTERVAL_HOURS=72
+      - AVAILABLE_WATER_M3=10000
+      - CENTRAL_PORT=8000
+      - ADAPTER_FARM1_URL=http://farm1-adapter:8001
+      - ADAPTER_FARM2_URL=http://farm2-adapter:8001
+      - ADAPTER_FARM3_URL=http://farm3-adapter:8001
+    networks: [edt-net]
+
+  #########################################################
+  # FARM 1 — Eclipse Ditto Digital Twin
+  #########################################################
+  farm1-mongodb:
+    image: mongo:7.0
+    container_name: farm1-mongodb
+    networks: [edt-net]
+    
+  farm1-ditto-policies:
+    image: eclipse/ditto-policies:3.9.1
+    container_name: farm1-ditto-policies
+    environment:
+      - MONGO_DB_HOSTNAME=farm1-mongodb
+      - MONGO_DB_PORT=27017
+      - MONGO_DB_DATABASE=ditto
+      - BIND_HOSTNAME=0.0.0.0
+    networks:
+      edt-net:
+        aliases: [ditto-cluster]
+
+  farm1-ditto-things:
+    image: eclipse/ditto-things:3.9.1
+    container_name: farm1-ditto-things
+    depends_on:
+      - farm1-ditto-policies
+    environment:
+      - MONGO_DB_HOSTNAME=farm1-mongodb
+      - MONGO_DB_PORT=27017
+      - MONGO_DB_DATABASE=ditto
+      - BIND_HOSTNAME=0.0.0.0
+    networks:
+      edt-net:
+        aliases: [ditto-cluster]
+
+  farm1-ditto-thingsearch:
+    image: eclipse/ditto-things-search:3.9.1
+    container_name: farm1-ditto-thingsearch
+    depends_on:
+      - farm1-ditto-policies
+    environment:
+      - MONGO_DB_HOSTNAME=farm1-mongodb
+      - MONGO_DB_PORT=27017
+      - MONGO_DB_DATABASE=ditto
+      - BIND_HOSTNAME=0.0.0.0
+    networks:
+      edt-net:
+        aliases: [ditto-cluster]
+
+  farm1-ditto-gateway:
+    image: eclipse/ditto-gateway:3.9.1
+    container_name: farm1-ditto-gateway
+    depends_on:
+      - farm1-ditto-policies
+    environment:
+      - MONGO_DB_HOSTNAME=farm1-mongodb
+      - MONGO_DB_PORT=27017
+      - MONGO_DB_DATABASE=ditto
+      - BIND_HOSTNAME=0.0.0.0
+      - ENABLE_PRE_AUTHENTICATION=true
+
+    networks:
+      edt-net:
+        aliases: [ditto-cluster]
+
+  # One-shot container that creates the Ditto policy + thing on the Ditto Gateway
+  # Exits after initialisation
+  farm1-init:
+    build:
+      context: .
+      dockerfile: farms/farm1_ditto/init/Dockerfile
+    image: farm1-init
+    container_name: farm1-init
+    volumes:
+      - ./farms/farm1_ditto/init/init.sh:/app/init.sh
+    environment:
+      - THING_ID=edt:farm1
+      - FARM_ID=farm1_ditto
+      - DITTO_URL=http://farm1-ditto-gateway:8080
+      - AREA_HA=50
+      - CROP_TYPE=wheat
+    depends_on:
+      farm1-ditto-gateway:
+        condition: service_started
+    networks: [edt-net]
+    restart: "no"
+
+  farm1-simulator:
+    build:
+      context: .
+      dockerfile: farms/farm1_ditto/farm_simulator/Dockerfile
+    image: farm1-simulator
+    container_name: farm1-simulator
+    volumes:
+      - ./farms/farm1_ditto/farm_simulator/farm_simulator.py:/app/farm_simulator.py
+      - ./shared:/app/shared
+      - ./farm_base:/app/farm_base
+    environment:
+      - FARM_ID=farm1_ditto
+      - THING_ID=edt:farm1
+      - CROP_TYPE=wheat
+      - AREA_HA=50
+      - DITTO_URL=http://farm1-ditto-gateway:8080
+      - POLL_INTERVAL=60
+    depends_on: [farm1-ditto-gateway, farm1-init]
+    networks: [edt-net]
+    restart: unless-stopped
+
+  farm1-adapter:
+    build:
+      context: .
+      dockerfile: farms/farm1_ditto/adapter/Dockerfile
+    image: farm1-adapter
+    container_name: farm1-adapter
+    volumes:
+      - ./farms/farm1_ditto/adapter/adapter.py:/app/adapter.py
+      - ./shared:/app/shared
+    environment:
+      - FARM_ID=farm1_ditto
+      - THING_ID=edt:farm1
+      - DITTO_URL=http://farm1-ditto-gateway:8080
+      - ADAPTER_PORT=8001
+    depends_on: [farm1-ditto-gateway, central-manager, farm1-init]
+    networks: [edt-net]
+    restart: unless-stopped
+
+  #########################################################
+  # FARM 2 — AAS (Asset Administration Shell) Digital Twin
+  #########################################################
+  farm2-aas:
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-08
+    container_name: farm2-aas
+    networks: [edt-net]
+
+  # One-shot container that creates the AAS shell + submodels.
+  farm2-init:
+    build:
+      context: .
+      dockerfile: farms/farm2_aas/init/Dockerfile
+    image: farm2-init
+    container_name: farm2-init
+    volumes:
+      - ./farms/farm2_aas/init/init.sh:/app/init.sh
+    environment:
+      - FARM_ID=farm2_aas
+      - SHELL_ID=https://edt.local/aas/farm2_aas
+      - SENSORS_SM_ID=https://edt.local/aas/farm2_aas/submodels/sensors
+      - ACTUATOR_SM_ID=https://edt.local/aas/farm2_aas/submodels/actuator
+      - AAS_URL=http://farm2-aas:8081
+      - AREA_HA=30
+      - CROP_TYPE=barley
+    depends_on:
+      farm2-aas:
+        condition: service_started
+    networks: [edt-net]
+    restart: "no"
+
+  farm2-simulator:
+    build:
+      context: .
+      dockerfile: farms/farm2_aas/farm_simulator/Dockerfile
+    image: farm2-simulator
+    container_name: farm2-simulator
+    volumes:
+      - ./farms/farm2_aas/farm_simulator/farm_simulator.py:/app/farm_simulator.py
+      - ./shared:/app/shared
+      - ./farm_base:/app/farm_base
+    environment:
+      - FARM_ID=farm2_aas
+      - SENSORS_SM_ID=https://edt.local/aas/farm2_aas/submodels/sensors
+      - ACTUATOR_SM_ID=https://edt.local/aas/farm2_aas/submodels/actuator
+      - AAS_URL=http://farm2-aas:8081
+      - AREA_HA=30
+      - CROP_TYPE=barley
+      - POLL_INTERVAL=60
+    depends_on: [farm2-aas, farm2-init]
+    networks: [edt-net]
+    restart: unless-stopped
+
+  farm2-adapter:
+    build:
+      context: .
+      dockerfile: farms/farm2_aas/adapter/Dockerfile
+    image: farm2-adapter
+    container_name: farm2-adapter
+    volumes:
+      - ./farms/farm2_aas/adapter/adapter.py:/app/adapter.py
+      - ./shared:/app/shared
+    environment:
+      - FARM_ID=farm2_aas
+      - SENSORS_SM_ID=https://edt.local/aas/farm2_aas/submodels/sensors
+      - ACTUATOR_SM_ID=https://edt.local/aas/farm2_aas/submodels/actuator
+      - AAS_URL=http://farm2-aas:8081
+      - ADAPTER_PORT=8001
+    depends_on: [farm2-aas, central-manager, farm2-init]
+    networks: [edt-net]
+    restart: unless-stopped
+
+  #########################################################
+  # FARM 3 — NGSI-LD Digital Twin (FIWARE Orion-LD)
+  #########################################################
+  farm3-mongodb:
+    image: mongo:7.0
+    container_name: farm3-mongodb
+    networks: [edt-net]
+
+  farm3-ngsild-server:
+    image: fiware/orion-ld:1.7.0
+    container_name: farm3-ngsild-server
+    ports: ["1026:1026"]
+    environment:
+      - MONGO_HOST=farm3-mongodb
+      - MONGO_PORT=27017
+    command: -dbhost farm3-mongodb -db orion -logForHumans -mongocOnly
+    depends_on:
+      - farm3-mongodb
+    networks: [edt-net]
+
+  farm3-init:
+    build:
+      context: .
+      dockerfile: farms/farm3_ngsild/init/Dockerfile
+    image: farm3-init
+    container_name: farm3-init
+    volumes:
+      - ./farms/farm3_ngsild/init/init.sh:/app/init.sh
+    environment:
+      - FARM_ID=farm3_ngsild
+      - ENTITY_ID=urn:ngsi-ld:Farm:farm3
+      - NGSILD_URL=http://farm3-ngsild-server:1026
+      - AREA_HA=20
+      - CROP_TYPE=maize
+    depends_on:
+      farm3-ngsild-server:
+        condition: service_started
+    networks: [edt-net]
+    restart: "no"
+
+  farm3-simulator:
+    build:
+      context: .
+      dockerfile: farms/farm3_ngsild/farm_simulator/Dockerfile
+    image: farm3-simulator
+    container_name: farm3-simulator
+    volumes:
+      - ./farms/farm3_ngsild/farm_simulator/farm_simulator.py:/app/farm_simulator.py
+      - ./shared:/app/shared
+      - ./farm_base:/app/farm_base
+    environment:
+      - FARM_ID=farm3_ngsild
+      - ENTITY_ID=urn:ngsi-ld:Farm:farm3
+      - NGSILD_URL=http://farm3-ngsild-server:1026
+      - AREA_HA=20
+      - CROP_TYPE=maize
+      - POLL_INTERVAL=60
+    depends_on: [farm3-ngsild-server, farm3-init]
+    networks: [edt-net]
+    restart: unless-stopped
+
+  farm3-adapter:
+    build:
+      context: .
+      dockerfile: farms/farm3_ngsild/adapter/Dockerfile
+    image: farm3-adapter
+    container_name: farm3-adapter
+    volumes:
+      - ./farms/farm3_ngsild/adapter/adapter.py:/app/adapter.py
+      - ./shared:/app/shared
+    environment:
+      - FARM_ID=farm3_ngsild
+      - ENTITY_ID=urn:ngsi-ld:Farm:farm3
+      - NGSILD_URL=http://farm3-ngsild-server:1026
+      - ADAPTER_PORT=8001
+    depends_on: [farm3-ngsild-server, central-manager, farm3-init]
+    networks: [edt-net]
+    restart: unless-stopped
