@@ -1,4 +1,4 @@
-# Use Case 3, Peer-to-peer Federation for Anomaly Detection
+# Use Case 3: Peer-to-peer Federation for Anomaly Detection
 
 For a video illustration of the implementation and execution of Use Case 3, refer to minute 06:22 of the following video: https://youtu.be/ZBd1h645gfw
 
