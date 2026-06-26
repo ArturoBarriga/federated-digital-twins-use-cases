@@ -4,9 +4,9 @@ For a video illustration of the implementation and execution of Use Case 1, refe
 
 ## Overview
 
-A regional water authority manages a shared water source serving three farms, each owned by a different organization. Every farm has a digital twin that monitors soil moisture, local weather conditions, and current irrigation usage. The farms use different DT platforms: Eclipse Ditto (Farm 1), Eclipse BaSyx AAS (Farm 2), and an NGSI-LD context broker (Farm 3),  exposing different data models and field names.
+A regional water authority manages a shared water source serving three farms, each owned by a different organization. Every farm has a Digital Twin (DT) that monitors soil moisture, local weather conditions, and current irrigation usage. The farms use different DT platforms: Eclipse Ditto (Farm 1), Eclipse BaSyx AAS (Farm 2), and an NGSI-LD context broker (Farm 3),  exposing different data models and field names.
 
-A central manager requests all farm digital twins through technology-specific adapters. Each adapter reads the farm's native twin, maps platform-specific schema and field names into a canonical schema, and forwards the result to the central manager. The central manager runs a proportional deficit-weighting algorithm that computes water allocation quotas for each farm based on its soil moisture deficit, field area, and available water. Eligible farms receive their quota as a command; the adapter writes it into the farm's native actuator feature. Commands are authoritative, farms cannot override the central decision.
+A central manager requests all farm DTs through technology-specific adapters. Each adapter reads the farm's native twin, maps platform-specific schema and field names into a canonical schema, and forwards the result to the central manager. The central manager runs a proportional deficit-weighting algorithm that computes water allocation quotas for each farm based on its soil moisture deficit, field area, and available water. Eligible farms receive their quota as a command; the adapter writes it into the farm's native actuator feature. Commands are authoritative, farms cannot override the central decision.
 
 ## Federation Strategy
 
@@ -14,9 +14,9 @@ A centralized architecture is appropriate here because the core function, optimi
 
 ## Architecture
 
-The architecture is organized into four layers: the Farm Physical Layer (simulated), the Farm Digital Twin Layer, the Integration / Adapter Layer, and the Central Manager Layer.
+The architecture is organized into four layers: the Farm Physical Layer (simulated), the Farm DT Layer, the Integration / Adapter Layer, and the Central Manager Layer.
 - The Farm Physical Layer consists of simulators that replicate the evolution of soil moisture and weather conditions in the farms.
-- The Farm Digital Twin Layer contains three independent Digital Twins, each implemented using a different platform.
+- The Farm DT Layer contains three independent DTs, each implemented using a different platform.
 - The Integration / Adapter Layer comprises three adapters that are executed on demand by the central manager via HTTP. When requested, they read the corresponding farm twin, normalize the data into a shared canonical format, and send it to the central manager.
 - The Central Manager Layer is a FastAPI application that periodically, every 72 hours, requests normalized telemetry, runs a water-allocation algorithm, and enforces the resulting water quotas through actuator commands.
 
@@ -79,7 +79,7 @@ To inspect the running containers, execute:
 docker ps
 ```
 
-The use case starts 18 services in total. Most containers should remain running, while the three initialization containers are one-shot services that create the required digital twin structures and then finish.
+The use case starts 18 services in total. Most containers should remain running, while the three initialization containers are one-shot services that create the required DT structures and then finish.
 
 The main long-running containers are:
 
@@ -109,7 +109,7 @@ farm2-init
 farm3-init
 ```
 
-Wait around 60 seconds after startup to allow the initialization containers to create the digital twins and the simulators to start pushing telemetry. During startup, some simulators may temporarily receive `404` responses if they push data before the corresponding twin has been created.
+Wait around 60 seconds after startup to allow the initialization containers to create the DTs and the simulators to start pushing telemetry. During startup, some simulators may temporarily receive `404` responses if they push data before the corresponding twin has been created.
 
 ## How to Trigger the Water Allocation Process
 
@@ -154,9 +154,9 @@ The endpoint should return a JSON response with one allocation result per farm:
 }
 ```
 
-The allocation decision is sent from the central manager to each farm's digital twin through its actuator interface. The corresponding simulator then reads the irrigation command from the digital twin and adapts its behavior accordingly. In particular, when an irrigation actuator request is received, the simulator models the effect of irrigation by increasing the simulated soil humidity during the following hours.
+The allocation decision is sent from the central manager to each farm's DT through its actuator interface. The corresponding simulator then reads the irrigation command from the DT and adapts its behavior accordingly. In particular, when an irrigation actuator request is received, the simulator models the effect of irrigation by increasing the simulated soil humidity during the following hours.
 
-To verify that the commands reached the digital twins and were processed by the simulators, inspect the simulator logs:
+To verify that the commands reached the DTs and were processed by the simulators, inspect the simulator logs:
 
 ```bash
 docker compose logs farm1-simulator
