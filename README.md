@@ -1,6 +1,6 @@
 ## Overview
 
-This repository provides the implementation artifacts and execution instructions for three proof-of-concept use cases that illustrate different federation strategies for digital twins in agriculture.
+This repository provides the implementation artifacts and execution instructions for three federated digital twin use cases.
 
 This repository is associated with the Engineering of Digital Twins conference (EDTconf) paper titled *"Characterizing Federated Digital Twins through Heterogeneity, Autonomy, and Distribution"*.
 
