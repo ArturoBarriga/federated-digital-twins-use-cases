@@ -25,6 +25,7 @@ The architecture is organized into four layers: the Farm Physical Layer (simulat
 
 ## Repository Structure
 
+
 ```text
 Use_Case_1_Centralized_Federation/
 ├── docker-compose.yml
@@ -36,20 +37,38 @@ Use_Case_1_Centralized_Federation/
 ├── shared/
 │   └── models.py
 ├── farm_base/
-│   └── farm_simulator.py     
+│   └── farm_simulator.py
 └── farms/
-    ├── farm1_ditto/            
-    │   ├── adapter/adapter.py, Dockerfile   
-    │   ├── init/init.sh, Dockerfile                     
-    │   └── farm_simulator/farm_simulator.py, Dockerfile  
-    ├── farm2_aas/                                 
-    │   ├── adapter/adapter.py, Dockerfile  
-    │   ├── init/init.sh, Dockerfile                     
-    │   └── farm_simulator/farm_simulator.py, Dockerfile  
-    └── farm3_ngsild/      
-        ├── adapter/adapter.py, Dockerfile    
-        ├── init/init.sh, Dockerfile 
-        └── farm_simulator/farm_simulator.py, Dockerfile
+    ├── farm1_ditto/
+    │   ├── adapter/
+    │   │   ├── Dockerfile
+    │   │   └── adapter.py
+    │   ├── init/
+    │   │   ├── Dockerfile
+    │   │   └── init.sh
+    │   └── farm_simulator/
+    │       ├── Dockerfile
+    │       └── farm_simulator.py
+    ├── farm2_aas/
+    │   ├── adapter/
+    │   │   ├── Dockerfile
+    │   │   └── adapter.py
+    │   ├── init/
+    │   │   ├── Dockerfile
+    │   │   └── init.sh
+    │   └── farm_simulator/
+    │       ├── Dockerfile
+    │       └── farm_simulator.py
+    └── farm3_ngsild/
+        ├── adapter/
+        │   ├── Dockerfile
+        │   └── adapter.py
+        ├── init/
+        │   ├── Dockerfile
+        │   └── init.sh
+        └── farm_simulator/
+            ├── Dockerfile
+            └── farm_simulator.py
 ```
         
 ## Requirements
