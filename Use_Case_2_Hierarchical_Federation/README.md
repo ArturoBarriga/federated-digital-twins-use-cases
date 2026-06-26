@@ -1,4 +1,4 @@
-# Use Case 2 - Hierarchical Federation for Precision Irrigation
+# Use Case 2: Hierarchical Federation for Precision Irrigation
 
 For a video illustration of the implementation and execution of Use Case 2, refer to minute 03:24 of the following video: https://youtu.be/ZBd1h645gfw
 
@@ -122,7 +122,7 @@ tree-data-preprocessor
 tree-ml-model
 ```
 
-The following initialization containers run once and then exit with status `Exited (0)` after creating the digital twin shell and submodel structures:
+The following initialization containers run once and then exit with status `Exited (0)` after creating the DT shell and submodel structures:
 
 ```text
 trunk-init
