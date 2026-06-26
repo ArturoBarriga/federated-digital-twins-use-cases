@@ -17,9 +17,9 @@ This repository is associated with the Engineering of Digital Twins conference (
 
 Each folder contains its own `README.md` file with specific instructions on how to build, run, and test the corresponding use case.
 
-* [Use Case 1: Centralized Federation](./Use_Case_1_Centralized_Federation/Readme.md)
-* [Use Case 2: Hierarchical Federation](./Use_Case_2_Hierarchical_Federation/Readme.md)
-* [Use Case 3: Peer-to-Peer Federation](./Use_Case_3_Peer_to_Peer_Federation/Readme.md)
+* [Use Case 1: Centralized Federation](./Use_Case_1_Centralized_Federation/README.md)
+* [Use Case 2: Hierarchical Federation](./Use_Case_2_Hierarchical_Federation/README.md)
+* [Use Case 3: Peer-to-Peer Federation](./Use_Case_3_Peer_to_Peer_Federation/README.md)
 
 ## Video Demonstration
 
